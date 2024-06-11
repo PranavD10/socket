@@ -25,24 +25,34 @@ using namespace std;
 int main(int argc, char *argv[])
 {
     struct hostent * server = gethostbyname("localhost");
-    
-    struct sockaddr_in addr = {0}, client = {0};
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(51717);
-    bcopy((char *)server->h_addr, (char *)&addr.sin_addr.s_addr, server->h_length);
 
-    char buffer[256] = {0};
-    char newBuffer[] = "World";
-    socklen_t clientLen;
+    struct sockaddr_in serverAddr, clientAddr;
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(51717);
+    memcpy(&serverAddr.sin_addr.s_addr, server->h_addr, server->h_length);
+
+    int ret = 0;
     int fd = socket(AF_INET, SOCK_STREAM, 0);
-    bind(fd, (struct sockaddr *)&addr, sizeof(addr));
-    listen(fd, 5);
-    int newfd = accept(fd, (struct sockaddr *)&client, &clientLen);
-    int readLength = read(newfd, buffer, 256);
-    for(int i = 0; i < readLength; i++) printf("%c", buffer[i]); printf("\n");
-    usleep(1000);
-    int writeLength = write(newfd, newBuffer, strlen(newBuffer));
-    close(newfd);
+    ASSERT(fd);
+    ret = bind(fd, (struct sockaddr*)& serverAddr, sizeof(serverAddr));
+    ASSERT(ret);
+    ret = listen(fd, 5);
+    ASSERT(ret);
+    while(true)
+    {
+        bool exit = false;
+        socklen_t clientLenght = sizeof(clientAddr);
+        int newClient = accept(fd, (struct sockaddr *) & clientAddr, &clientLenght);
+        while(!exit)
+        {
+            char readBuffer[256] = {0};
+            int readLength = read(newClient, &readBuffer, 256);
+            printf("%s", &readBuffer[0]);
+            if(strncmp(&readBuffer[0], "exit", 4) == 0) break;
+            int writeLength = write(newClient, &readBuffer, strlen(readBuffer));
+        }
+        close(newClient);
+    }
     close(fd);
     return 0;
 }

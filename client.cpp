@@ -22,20 +22,29 @@ using namespace std;
 
 int main(int argc, char * argv[])
 {
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in addr = {0}, client = {0};
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(51717);
     struct hostent * server = gethostbyname("localhost");
-    bcopy((char *)server->h_addr, (char *)&addr.sin_addr.s_addr, server->h_length);
-    connect(fd, (struct sockaddr *)&addr, sizeof(addr));
-    socklen_t clientLen;
-    char buffer[] = "Hello";
-    char newBuffer[256] = {0};
-    int writeLength = write(fd, buffer, strlen(buffer));
-    usleep(1000);
-    int readLength = read(fd, newBuffer, 256);
-    for(int i = 0; i < readLength; i++) printf("%c", newBuffer[i]); printf("\n");
+
+    struct sockaddr_in clientAddr;
+    clientAddr.sin_family = AF_INET;
+    clientAddr.sin_port = htons(51717);
+    memcpy(&clientAddr.sin_addr.s_addr, server->h_addr, server->h_length);
+
+    int ret = 0;
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    ASSERT(fd);
+    ret = connect(fd, (struct sockaddr *) & clientAddr, sizeof(clientAddr));
+    ASSERT(ret);
+    socklen_t clientLenght = sizeof(clientAddr);
+    bool exit = false;
+    while(!exit)
+    {
+        char readBuffer[256] = {0};
+        char writeBuffer[256] = {0};
+        fgets(writeBuffer, 256, stdin);
+        int writeLength = write(fd, &writeBuffer, strlen(writeBuffer));
+        int readLength = read(fd, &readBuffer, 256);
+        printf("%s", &readBuffer[0]);
+    }
     close(fd);
     return 0;
 }
